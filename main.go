@@ -5,7 +5,8 @@ import (
 	"github.com/oliamb/cutter"
 	"gopkg.in/urfave/cli.v2"
 	"image"
-	"image/png"
+	"image/draw"
+	// 	"image/png"
 	"os"
 	"path/filepath"
 	"strings"
@@ -34,7 +35,8 @@ func slice(dir string) {
 		dotIndex := strings.LastIndex(path, ".")
 		ext := path[dotIndex:]
 		if ext == ".png" {
-			doSlice(path)
+			images := doSlice(path)
+			combine(images)
 		}
 		return nil
 	})
@@ -44,39 +46,44 @@ func slice(dir string) {
 	}
 }
 
-func doSlice(path string) {
-	file, err := os.Open(path)
+func doSlice(path string) []image.Image {
+	file, _ := os.Open(path)
 	defer file.Close()
-	if err != nil {
-		fmt.Println(err)
-		return
+
+	img, _, _ := image.Decode(file)
+
+	croppedImages := make([]image.Image, 12)
+
+	for y := 0; y < 4; y++ {
+		for x := 0; x < 3; i++ {
+			croppedImg, _ := cutter.Crop(img, cutter.Config{
+				Width:   32,
+				Height:  48,
+				Anchor:  image.Point{32 * x, 48 * y},
+				Options: cutter.Copy,
+			})
+			croppedImages[i] = croppedImg
+		}
 	}
 
-	img, _, err := image.Decode(file)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
+	return croppedImages
+}
 
-	croppedImg, err := cutter.Crop(img, cutter.Config{
-		Width:   32,
-		Height:  48,
-		Options: cutter.Copy,
-	})
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
+func combine(images []image.Image) {
 	if !exists("out") {
 		if err := os.Mkdir("out", 0777); err != nil {
 			fmt.Println(err)
 		}
 	}
-
-	out, _ := os.Create("out/test.png")
-	_ = png.Encode(out, croppedImg)
-	defer out.Close()
+	// 	dp := image.Point{images[0].Bounds().Dx, 0}
+	// 	r := image.Rect(0, 0, 64, 48)
+	// 	rgba := image.NewRGBA(r)
+	// 	draw.Draw(rgba, images[0].Bounds(), images[0], image.Point{0, 0}, draw.Src)
+	// 	draw.Draw(rgba, image.Rect(32, 0, 32, 48), images[1], image.Point{32, 0}, draw.Src)
+	// 	draw.Draw
+	// 	out, _ := os.Create("out/test.png")
+	// 	_ = png.Encode(out, croppedImg)
+	// 	defer out.Close()
 }
 
 func check(c *cli.Context) bool {
