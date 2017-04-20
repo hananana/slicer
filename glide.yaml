@@ -2,3 +2,5 @@ package: github.com/hananana/slicer
 import:
 - package: gopkg.in/urfave/cli.v2
   version: ^1.19.1
+- package: github.com/oliamb/cutter
+  version: ^0.2.0

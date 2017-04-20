@@ -1,9 +1,11 @@
 package main
 
 import (
-	"gopkg.in/urfave/cli.v2"
-	// 	"io/ioutil"
 	"fmt"
+	"github.com/oliamb/cutter"
+	"gopkg.in/urfave/cli.v2"
+	"image"
+	"image/png"
 	"os"
 	"path/filepath"
 	"strings"
@@ -24,7 +26,57 @@ func main() {
 	app.Run(os.Args)
 }
 
-func slice(path string) {
+func slice(dir string) {
+	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+		if info.IsDir() {
+			return nil
+		}
+		dotIndex := strings.LastIndex(path, ".")
+		ext := path[dotIndex:]
+		if ext == ".png" {
+			doSlice(path)
+		}
+		return nil
+	})
+
+	if err != nil {
+		fmt.Println(err)
+	}
+}
+
+func doSlice(path string) {
+	file, err := os.Open(path)
+	defer file.Close()
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	img, _, err := image.Decode(file)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	croppedImg, err := cutter.Crop(img, cutter.Config{
+		Width:   32,
+		Height:  48,
+		Options: cutter.Copy,
+	})
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	if !exists("out") {
+		if err := os.Mkdir("out", 0777); err != nil {
+			fmt.Println(err)
+		}
+	}
+
+	out, _ := os.Create("out/test.png")
+	_ = png.Encode(out, croppedImg)
+	defer out.Close()
 }
 
 func check(c *cli.Context) bool {
