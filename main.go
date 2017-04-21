@@ -6,11 +6,15 @@ import (
 	"gopkg.in/urfave/cli.v2"
 	"image"
 	"image/draw"
-	// 	"image/png"
+	"image/png"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 )
+
+const baseWidth = 32
+const baseHeight = 48
 
 func main() {
 	app := cli.NewApp()
@@ -52,18 +56,16 @@ func doSlice(path string) []image.Image {
 
 	img, _, _ := image.Decode(file)
 
-	croppedImages := make([]image.Image, 12)
+	croppedImages := make([]image.Image, 3)
 
-	for y := 0; y < 4; y++ {
-		for x := 0; x < 3; i++ {
-			croppedImg, _ := cutter.Crop(img, cutter.Config{
-				Width:   32,
-				Height:  48,
-				Anchor:  image.Point{32 * x, 48 * y},
-				Options: cutter.Copy,
-			})
-			croppedImages[i] = croppedImg
-		}
+	for i := 0; i < 3; i++ {
+		croppedImg, _ := cutter.Crop(img, cutter.Config{
+			Width:  baseWidth,
+			Height: baseHeight * 4,
+			Anchor: image.Point{baseWidth * i, 0},
+			Mode:   cutter.TopLeft,
+		})
+		croppedImages[i] = croppedImg
 	}
 
 	return croppedImages
@@ -75,15 +77,52 @@ func combine(images []image.Image) {
 			fmt.Println(err)
 		}
 	}
-	// 	dp := image.Point{images[0].Bounds().Dx, 0}
-	// 	r := image.Rect(0, 0, 64, 48)
-	// 	rgba := image.NewRGBA(r)
-	// 	draw.Draw(rgba, images[0].Bounds(), images[0], image.Point{0, 0}, draw.Src)
-	// 	draw.Draw(rgba, image.Rect(32, 0, 32, 48), images[1], image.Point{32, 0}, draw.Src)
-	// 	draw.Draw
-	// 	out, _ := os.Create("out/test.png")
-	// 	_ = png.Encode(out, croppedImg)
-	// 	defer out.Close()
+
+	tempDir := "slicerTemp"
+	if !exists(tempDir) {
+		if err := os.Mkdir(tempDir, 0777); err != nil {
+			fmt.Println(err)
+		}
+	}
+
+	for index, image := range images {
+		out, err := os.Create(tempDir + "/" + strconv.Itoa(index) + ".png")
+		if err != nil {
+			println(err)
+		}
+		err = png.Encode(out, image)
+		if err != nil {
+			println(err)
+		}
+	}
+
+	newImages := make([]image.Image, 3)
+	for i := 0; i < 3; i++ {
+		file, _ := os.Open(tempDir + "/" + strconv.Itoa(i) + ".png")
+		img, _, _ := image.Decode(file)
+		newImages[i] = img
+	}
+
+	baseRect := image.Rect(0, 0, baseWidth*4, baseHeight*4)
+	rgba := image.NewRGBA(baseRect)
+	stay := newImages[1]
+	right := newImages[2]
+	left := newImages[0]
+
+	draw.Draw(rgba, stay.Bounds(), stay, image.ZP, draw.Src)
+	draw.Draw(rgba, right.Bounds().Add(image.Pt(baseWidth, 0)), right, image.ZP, draw.Src)
+	draw.Draw(rgba, stay.Bounds().Add(image.Pt(baseWidth*2, 0)), stay, image.ZP, draw.Src)
+	draw.Draw(rgba, left.Bounds().Add(image.Pt(baseWidth*3, 0)), left, image.ZP, draw.Src)
+
+	out, err := os.Create("out/test.png")
+	defer out.Close()
+	if err != nil {
+		println(err)
+	}
+	err = png.Encode(out, rgba)
+	if err != nil {
+		println(err)
+	}
 }
 
 func check(c *cli.Context) bool {
