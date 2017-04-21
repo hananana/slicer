@@ -56,9 +56,9 @@ func doSlice(path string) []image.Image {
 
 	img, _, _ := image.Decode(file)
 
-	croppedImages := make([]image.Image, 3)
+	croppedImages := make([]image.Image, 4)
 
-	for i := 0; i < 3; i++ {
+	for i := 0; i < 4; i++ {
 		croppedImg, _ := cutter.Crop(img, cutter.Config{
 			Width:  baseWidth,
 			Height: baseHeight * 4,
@@ -96,8 +96,8 @@ func combine(images []image.Image) {
 		}
 	}
 
-	newImages := make([]image.Image, 3)
-	for i := 0; i < 3; i++ {
+	newImages := make([]image.Image, 4)
+	for i := 0; i < 4; i++ {
 		file, _ := os.Open(tempDir + "/" + strconv.Itoa(i) + ".png")
 		img, _, _ := image.Decode(file)
 		newImages[i] = img
@@ -105,14 +105,13 @@ func combine(images []image.Image) {
 
 	baseRect := image.Rect(0, 0, baseWidth*4, baseHeight*4)
 	rgba := image.NewRGBA(baseRect)
-	stay := newImages[1]
-	right := newImages[2]
-	left := newImages[0]
+	stay := newImages[0]
+	right := newImages[1]
+	left := newImages[3]
 
-	draw.Draw(rgba, stay.Bounds(), stay, image.ZP, draw.Src)
-	draw.Draw(rgba, right.Bounds().Add(image.Pt(baseWidth, 0)), right, image.ZP, draw.Src)
-	draw.Draw(rgba, stay.Bounds().Add(image.Pt(baseWidth*2, 0)), stay, image.ZP, draw.Src)
-	draw.Draw(rgba, left.Bounds().Add(image.Pt(baseWidth*3, 0)), left, image.ZP, draw.Src)
+	draw.Draw(rgba, left.Bounds(), left, image.ZP, draw.Src)
+	draw.Draw(rgba, stay.Bounds().Add(image.Pt(baseWidth, 0)), stay, image.ZP, draw.Src)
+	draw.Draw(rgba, right.Bounds().Add(image.Pt(baseWidth*2, 0)), right, image.ZP, draw.Src)
 
 	out, err := os.Create("out/test.png")
 	defer out.Close()
@@ -123,6 +122,8 @@ func combine(images []image.Image) {
 	if err != nil {
 		println(err)
 	}
+
+	os.RemoveAll(tempDir)
 }
 
 func check(c *cli.Context) bool {
