@@ -37,10 +37,12 @@ func slice(dir string) {
 			return nil
 		}
 		dotIndex := strings.LastIndex(path, ".")
+		lastSlashIndex := strings.LastIndex(path, "/")
 		ext := path[dotIndex:]
 		if ext == ".png" {
 			images := doSlice(path)
-			combine(images)
+			name := path[lastSlashIndex+1:]
+			combine(images, name)
 		}
 		return nil
 	})
@@ -71,7 +73,7 @@ func doSlice(path string) []image.Image {
 	return croppedImages
 }
 
-func combine(images []image.Image) {
+func combine(images []image.Image, name string) {
 	if !exists("out") {
 		if err := os.Mkdir("out", 0777); err != nil {
 			fmt.Println(err)
@@ -113,7 +115,7 @@ func combine(images []image.Image) {
 	draw.Draw(rgba, stay.Bounds().Add(image.Pt(baseWidth, 0)), stay, image.ZP, draw.Src)
 	draw.Draw(rgba, right.Bounds().Add(image.Pt(baseWidth*2, 0)), right, image.ZP, draw.Src)
 
-	out, err := os.Create("out/test.png")
+	out, err := os.Create("out/" + name)
 	defer out.Close()
 	if err != nil {
 		println(err)
