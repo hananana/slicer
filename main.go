@@ -105,7 +105,7 @@ func combine(images []image.Image, name string) {
 		newImages[i] = img
 	}
 
-	baseRect := image.Rect(0, 0, baseWidth*4, baseHeight*4)
+	baseRect := image.Rect(0, 0, baseWidth*3, baseHeight*4)
 	rgba := image.NewRGBA(baseRect)
 	stay := newImages[0]
 	right := newImages[1]
